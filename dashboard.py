@@ -2,11 +2,13 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-
+## ORIGINAL CODE + some extra - PROF WILLIAMS ##
 st.header("2024 AHI 507 Streamlit Example")
 st.subheader("We are going to go through a couple different examples of loading and visualization information into this dashboard")
 
 st.text("""In this streamlit dashboard, we are going to focus on some recently released school learning modalities data from the NCES, for the years of 2021.""")
+
+## ZIP CODE DATA ##
 
 ## https://healthdata.gov/National/School-Learning-Modalities-2020-2021/a8v3-a3m3/about_data
 df = pd.read_csv("https://healthdata.gov/resource/a8v3-a3m3.csv?$limit=50000") ## first 1k 
@@ -36,6 +38,9 @@ df['zip_code'] = df['zip_code'].astype(str)
 df['week'].value_counts()
 df['learning_modality']
 
+df['student_count']
+df['operational_schools']
+
 ## box to show how many rows and columns of data we have: 
 col1, col2, col3 = st.columns(3)
 col1.metric("Columns", df.shape[1]) 
@@ -45,16 +50,15 @@ col3.metric("Number of unique districts/schools:", df['district_name'].nunique()
 ## exposing first 1k of NCES 20-21 data
 st.dataframe(df)
 
-
-
 table = pd.pivot_table(df, values='student_count', index=['week'],
                        columns=['learning_modality'], aggfunc="sum")
 
 table = table.reset_index()
 table.columns
 
-## melt the table to make it easier to plot
+## melt the table to make it easier to plot for area chart
 table_melt = table.melt(id_vars=["week"], value_vars=["Hybrid", "In Person", "Remote"], var_name="learning_modality", value_name="student_count")
+
 
 ## bar chart by week 
 st.bar_chart(
@@ -75,18 +79,18 @@ st.bar_chart(
     y="Remote",
 )
 
-st.header("*********************************************")
+## ADDED CODE - JANNA
 
+st.header("*********************************************")
 st.header("Enhanced Streamlit Dashboards")
 
 ## widget 1 for link to original dataset in button form
 st.page_link("https://healthdata.gov/National/School-Learning-Modalities-2020-2021/a8v3-a3m3/about_data", label="Original Dataset", icon="🏫")
 
-
-## area chart for learning modalities
-
-st.subheader("Data for AL")
+st.subheader("Condensed + Merged Data for AL")
 short_frame = df.head(134)
+
+## map chart by zipcode
 
 ## drop where lat or long is null
 short_frame = short_frame.dropna(subset=['latitude', 'longitude'])
@@ -95,6 +99,17 @@ short_frame['latitude'].isnull().sum()
 short_frame['longitude'].isnull().sum()
 
 st.dataframe(df.head (134))
+
+st.subheader("Operational Schools by Zip Code in Alabama")
+st.map(
+    short_frame,
+    color="#68ae5c"
+)
+
+st.text("""This chart is to visualize how the distribution of operational schools varied by zip code. This could show if urban or rural areas had more operational schools during a given period """)
+
+
+## line chart for learning modalities
 
 st.subheader("Trends in Learning Modalities Over Time")
 st.line_chart(
@@ -108,27 +123,19 @@ st.line_chart(
 st.text("""This chart is to show how the proportion of in-person, remote, and hybrid learning modalities changed week by week throughout the school year.""")
 
 
-## map chart by zipcode
+## bar chart for student count
 
-st.subheader("Operational Schools by Zip Code in Alabama")
-st.map(
-    short_frame,
+weekly_data = df.groupby('week')['student_count'].sum().reset_index()
+
+st.subheader("Student Count Over Time")
+st.bar_chart(
+weekly_data.set_index('week'),
+width=400,
+height=500,
+color="#ccb0f4"
 )
-st.text("""To visualize how the distribution of operational schools varied by zip code. 
-This could show if urban or rural areas had more operational schools during a given period """)
 
-
-## line chart
-
-st.subheader("Operational Schools and Student Count Over Time")
-st.line_chart(
-    df,
-    x="week",
-    y="operational_schools", 
-
-)
-st.text("""To see if there is a correlation between the number of schools open and the number of students attending
- You might observe a drop in student count in certain weeks (possibly due to shifts to remote learning or other disruptions).""")
+st.text("""This bar chart shows the total number of students attending each week. It allows us to visualize the trends in student attendance over time, and see if there are fluctuations based on various factors like school closures or changes in learning modalities.""")
 
 ## widget 2 to rate visualizations
 st.text("""Rate these data visualizations!""")
